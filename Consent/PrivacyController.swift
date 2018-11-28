@@ -40,16 +40,16 @@ public struct PrivacyController {
         }
     }
     
-    public enum UserContent {
+    public enum ContentType {
         case camera
-        case photosLibrary
+        case photoLibrary
         case calendar(EKEntityType)
         case contacts
         
         public var requiredInfoPlistKey: String {
             switch self {
             case .camera: return "NSCameraUsageDescription"
-            case .photosLibrary: return "NSPhotoLibraryUsageDescription"
+            case .photoLibrary: return "NSPhotoLibraryUsageDescription"
             case .calendar: return "NSCalendarsUsageDescription"
             case .contacts: return "NSContactsUsageDescription"
             }
@@ -58,7 +58,7 @@ public struct PrivacyController {
         public var description: String {
             switch self {
             case .camera: return "camera"
-            case .photosLibrary: return "photos library"
+            case .photoLibrary: return "photos library"
             case .calendar: return "calendar"
             case .contacts: return "contacts"
             }
@@ -67,16 +67,26 @@ public struct PrivacyController {
     
     public enum AuthorizationStatus {
         case camera(AVAuthorizationStatus)
-        case photosLibrary(PHAuthorizationStatus)
+        case photoLibrary(PHAuthorizationStatus)
         case calendar(EKAuthorizationStatus)
         case contacts(CNAuthorizationStatus)
     }
     
-    public enum AuthorizationCompletionHandler {
+    
+    public enum AuthorizationType {
         case camera(AVKitCompletionHandler)
         case photosLibrary(PHKitCompletionHandler)
-        case calendar(EKEventStoreRequestAccessCompletionHandler)
+        case calendar(EKEntityType, EKEventStoreRequestAccessCompletionHandler)
         case contacts(CNContactsCompletionHandler)
+        
+        var userContent: ContentType {
+            switch self {
+            case .camera: return .camera
+            case .photosLibrary: return .photoLibrary
+            case .calendar(let type, _): return .calendar(type)
+            case .contacts: return .contacts
+            }
+        }
     }
     
     private static var infoDictionary: [String: Any]? = {
@@ -84,14 +94,14 @@ public struct PrivacyController {
     }()
     
     /// Returns the underlying authorization status for the requested content
-    public static func authorizationStatus(for content: UserContent) -> AuthorizationStatus {
+    public static func authorizationStatus(for content: ContentType) -> AuthorizationStatus {
         precondition(PrivacyController.infoDictionary?[content.requiredInfoPlistKey] != nil, "The \(content.description) permission requires the Info.plist key \(content.requiredInfoPlistKey)")
         
         switch content {
         case .camera:
             return .camera(AVCaptureDevice.authorizationStatus(for: .video))
-        case .photosLibrary:
-            return .photosLibrary(PHPhotoLibrary.authorizationStatus())
+        case .photoLibrary:
+            return .photoLibrary(PHPhotoLibrary.authorizationStatus())
         case .calendar(let entityType):
             return .calendar(EKEventStore.authorizationStatus(for: entityType))
         case .contacts:
@@ -106,7 +116,7 @@ public struct PrivacyController {
             return status == .authorized
         case .calendar(let status):
             return status == .authorized
-        case .photosLibrary(let status):
+        case .photoLibrary(let status):
             return status == .authorized
         case .contacts(let status):
             return status == .authorized
@@ -114,29 +124,28 @@ public struct PrivacyController {
     }
     
     /// Returns a boolean value whether the specified content can be accessed
-    public static func canAccess(_ content: UserContent) -> Bool {
+    public static func canAccess(_ content: ContentType) -> Bool {
         let authState = authorizationStatus(for: content)
         return simpleAuthState(for: authState)
     }
     
     /// Requests access for the given content
     /// Calls isAuthorized on users behalf, no need to call it manually
-    public static func requestAccess(for content: UserContent, completion: AuthorizationCompletionHandler) {
-        precondition(PrivacyController.infoDictionary?[content.requiredInfoPlistKey] != nil,
-                     "The \(content.description) permission requires the Info.plist key \(content.requiredInfoPlistKey)")
+    public static func requestAccess(for type: AuthorizationType) {
+        precondition(PrivacyController.infoDictionary?[type.userContent.requiredInfoPlistKey] != nil,
+                     "The \(type.userContent.description) permission requires the Info.plist key \(type.userContent.requiredInfoPlistKey)")
         
-        let isAuthorizedForContent = canAccess(content)
+        let isAuthorizedForContent = canAccess(type.userContent)
         
-        switch (content, completion) {
-        case (.camera, .camera(let completion)):
+        switch type {
+        case .camera(let completion):
             isAuthorizedForContent ? completion(true) : AVCaptureDevice.requestAccess(for: .video, completionHandler: completion)
-        case (.photosLibrary, .photosLibrary(let completion)):
+        case .photosLibrary(let completion):
             isAuthorizedForContent ? completion(.authorized) : PHPhotoLibrary.requestAuthorization(completion)
-        case (.calendar(let type), .calendar(let completion)):
+        case .calendar(let type, let completion):
             isAuthorizedForContent ? completion(true, nil) : EKEventStore().requestAccess(to: type, completion: completion)
-        case (.contacts, .contacts(let completion)):
+        case .contacts(let completion):
             isAuthorizedForContent ? completion(true, nil) : CNContactStore().requestAccess(for: .contacts, completionHandler: completion)
-        default: break
         }
     }
     
@@ -144,9 +153,9 @@ public struct PrivacyController {
     /// - Parameter content: The content that should be accessed
     /// - Parameter alertConfiguration: An alert configuration that will be used to show an alert in case the requested content can not be accessed, see the function `showAppSettingsAlert`
     /// - Parameter completion: A closure that will be called with a bool which tells whether the requested content can be accessed
-    public static func requestAccess(for content: UserContent, alertConfiguration: AuthorizationAlertConfiguration? = nil, completion: @escaping SimpleAuthorizationCompletionHandler) {
+    public static func requestAccess(for content: ContentType, alertConfiguration: AuthorizationAlertConfiguration? = nil, completion: @escaping SimpleAuthorizationCompletionHandler) {
         
-        func complete(success: Bool) {
+        func complete(_ success: Bool) {
             if !success, let alertConfig = alertConfiguration {
                 showAppSettingsAlert(with: alertConfig)
             }
@@ -155,20 +164,20 @@ public struct PrivacyController {
         
         switch content {
         case .camera:
-            requestAccess(for: content, completion: .camera({ success in
-                complete(success: success)
+            requestAccess(for: .camera({ canAccess in
+                complete(canAccess)
             }))
-        case .photosLibrary:
-            requestAccess(for: content, completion: .photosLibrary({ (status) in
-                complete(success: PrivacyController.simpleAuthState(for: .photosLibrary(status)))
+        case .photoLibrary:
+            requestAccess(for: .photosLibrary({ authState in
+                complete(PrivacyController.simpleAuthState(for: .photoLibrary(authState)))
             }))
-        case .calendar:
-            requestAccess(for: content, completion: .calendar({ (canAccess, error) in
-                complete(success: canAccess && error == nil)
+        case .calendar(let type):
+            requestAccess(for: .calendar(type, { (canAccess, error) in
+                complete(canAccess && error == nil)
             }))
         case .contacts:
-            requestAccess(for: content, completion: .contacts({ (canAccess, error) in
-                complete(success: canAccess && error == nil)
+            requestAccess(for: .contacts({ (canAccess, error) in
+                complete(canAccess && error == nil)
             }))
         }
     }
