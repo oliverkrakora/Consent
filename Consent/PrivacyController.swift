@@ -72,7 +72,6 @@ public struct PrivacyController {
         case contacts(CNAuthorizationStatus)
     }
     
-    
     public enum AuthorizationType {
         case camera(AVKitCompletionHandler)
         case photosLibrary(PHKitCompletionHandler)
