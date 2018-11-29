@@ -11,6 +11,7 @@ import AVKit
 import Photos
 import EventKit
 import Contacts
+import UserNotifications
 
 public struct PrivacyController {
     
@@ -21,6 +22,8 @@ public struct PrivacyController {
     public typealias PHKitCompletionHandler = ((PHAuthorizationStatus) -> Void)
     
     public typealias CNContactsCompletionHandler = ((Bool, Error?) -> Void)
+    
+    public typealias UNUserNotificationCenterCompletionHandler = ((Bool, Error?) -> Void)
     
     public typealias SimpleAuthorizationCompletionHandler = ((Bool) -> Void)
     
@@ -45,13 +48,15 @@ public struct PrivacyController {
         case photoLibrary
         case calendar(EKEntityType)
         case contacts
+        case pushNotifications(UNAuthorizationOptions)
         
-        public var requiredInfoPlistKey: String {
+        public var requiredInfoPlistKey: String? {
             switch self {
             case .camera: return "NSCameraUsageDescription"
             case .photoLibrary: return "NSPhotoLibraryUsageDescription"
             case .calendar: return "NSCalendarsUsageDescription"
             case .contacts: return "NSContactsUsageDescription"
+            case .pushNotifications: return nil
             }
         }
         
@@ -61,6 +66,7 @@ public struct PrivacyController {
             case .photoLibrary: return "photos library"
             case .calendar: return "calendar"
             case .contacts: return "contacts"
+            case .pushNotifications: return "push notifications"
             }
         }
     }
@@ -70,6 +76,7 @@ public struct PrivacyController {
         case photoLibrary(PHAuthorizationStatus)
         case calendar(EKAuthorizationStatus)
         case contacts(CNAuthorizationStatus)
+        case pushNotifications(UNNotificationSettings)
     }
     
     public enum AuthorizationType {
@@ -77,6 +84,7 @@ public struct PrivacyController {
         case photosLibrary(PHKitCompletionHandler)
         case calendar(EKEntityType, EKEventStoreRequestAccessCompletionHandler)
         case contacts(CNContactsCompletionHandler)
+        case pushNotifications(UNAuthorizationOptions, UNUserNotificationCenterCompletionHandler)
         
         var userContent: ContentType {
             switch self {
@@ -84,6 +92,7 @@ public struct PrivacyController {
             case .photosLibrary: return .photoLibrary
             case .calendar(let type, _): return .calendar(type)
             case .contacts: return .contacts
+            case .pushNotifications(let options, _): return .pushNotifications(options)
             }
         }
     }
@@ -93,18 +102,22 @@ public struct PrivacyController {
     }()
     
     /// Returns the underlying authorization status for the requested content
-    public static func authorizationStatus(for content: ContentType) -> AuthorizationStatus {
-        precondition(PrivacyController.infoDictionary?[content.requiredInfoPlistKey] != nil, "The \(content.description) permission requires the Info.plist key \(content.requiredInfoPlistKey)")
+    public static func authorizationStatus(for content: ContentType, completion: @escaping ((AuthorizationStatus) -> Void)) {
+        checkPropertyListKey(for: content)
         
         switch content {
         case .camera:
-            return .camera(AVCaptureDevice.authorizationStatus(for: .video))
+            completion(.camera(AVCaptureDevice.authorizationStatus(for: .video)))
         case .photoLibrary:
-            return .photoLibrary(PHPhotoLibrary.authorizationStatus())
+            completion(.photoLibrary(PHPhotoLibrary.authorizationStatus()))
         case .calendar(let entityType):
-            return .calendar(EKEventStore.authorizationStatus(for: entityType))
+            completion(.calendar(EKEventStore.authorizationStatus(for: entityType)))
         case .contacts:
-            return .contacts(CNContactStore.authorizationStatus(for: .contacts))
+            completion(.contacts(CNContactStore.authorizationStatus(for: .contacts)))
+        case .pushNotifications:
+            UNUserNotificationCenter.current().getNotificationSettings { settings in
+                completion(.pushNotifications(settings))
+            }
         }
     }
     
@@ -119,32 +132,36 @@ public struct PrivacyController {
             return status == .authorized
         case .contacts(let status):
             return status == .authorized
+        case .pushNotifications(let settings):
+            return settings.authorizationStatus == .authorized
         }
     }
     
     /// Returns a boolean value whether the specified content can be accessed
-    public static func canAccess(_ content: ContentType) -> Bool {
-        let authState = authorizationStatus(for: content)
-        return simpleAuthState(for: authState)
+    public static func canAccess(_ content: ContentType, completion: @escaping ((Bool) -> Void)) {
+        authorizationStatus(for: content) { status in
+            completion(simpleAuthState(for: status))
+        }
     }
     
     /// Requests access for the given content
     /// Calls isAuthorized on users behalf, no need to call it manually
     public static func requestAccess(for type: AuthorizationType) {
-        precondition(PrivacyController.infoDictionary?[type.userContent.requiredInfoPlistKey] != nil,
-                     "The \(type.userContent.description) permission requires the Info.plist key \(type.userContent.requiredInfoPlistKey)")
+        checkPropertyListKey(for: type.userContent)
         
-        let isAuthorizedForContent = canAccess(type.userContent)
-        
-        switch type {
-        case .camera(let completion):
-            isAuthorizedForContent ? completion(true) : AVCaptureDevice.requestAccess(for: .video, completionHandler: completion)
-        case .photosLibrary(let completion):
-            isAuthorizedForContent ? completion(.authorized) : PHPhotoLibrary.requestAuthorization(completion)
-        case .calendar(let type, let completion):
-            isAuthorizedForContent ? completion(true, nil) : EKEventStore().requestAccess(to: type, completion: completion)
-        case .contacts(let completion):
-            isAuthorizedForContent ? completion(true, nil) : CNContactStore().requestAccess(for: .contacts, completionHandler: completion)
+        canAccess(type.userContent) { isAuthorizedForContent in
+            switch type {
+            case .camera(let completion):
+                isAuthorizedForContent ? completion(true) : AVCaptureDevice.requestAccess(for: .video, completionHandler: completion)
+            case .photosLibrary(let completion):
+                isAuthorizedForContent ? completion(.authorized) : PHPhotoLibrary.requestAuthorization(completion)
+            case .calendar(let type, let completion):
+                isAuthorizedForContent ? completion(true, nil) : EKEventStore().requestAccess(to: type, completion: completion)
+            case .contacts(let completion):
+                isAuthorizedForContent ? completion(true, nil) : CNContactStore().requestAccess(for: .contacts, completionHandler: completion)
+            case .pushNotifications(let options, let completion):
+                isAuthorizedForContent ? completion(true, nil) : UNUserNotificationCenter.current().requestAuthorization(options: options, completionHandler: completion)
+            }
         }
     }
     
@@ -178,6 +195,10 @@ public struct PrivacyController {
             requestAccess(for: .contacts({ (canAccess, error) in
                 complete(canAccess && error == nil)
             }))
+        case .pushNotifications(let options):
+            requestAccess(for: .pushNotifications(options, { (canAccess, error) in
+                complete(canAccess && error == nil)
+            }))
         }
     }
     
@@ -205,6 +226,10 @@ public struct PrivacyController {
                              settingsTitle: config.showSettingsActionTitle,
                              cancelTitle: config.cancelTitle,
                              viewController: config.viewController)
+    }
+    
+    private static func checkPropertyListKey(for type: ContentType) {
+        precondition(type.requiredInfoPlistKey != nil && PrivacyController.infoDictionary?[type.requiredInfoPlistKey!] != nil, "The \(type.description) permission requires the Info.plist key \(type.requiredInfoPlistKey!)")
     }
     
 }
