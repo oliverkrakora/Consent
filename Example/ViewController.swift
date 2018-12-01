@@ -11,11 +11,11 @@ import Consent
 
 class ViewController: UITableViewController {
     
-    func requestAccess(for content: PrivacyController.ContentType) {
-        let alertConfig = PrivacyController.AuthorizationAlertConfiguration(title: "XYZ can't access \(content.description)",
+    func requestAccess(for content: Privacy.ContentType) {
+        let alertConfig = Privacy.AuthorizationAlertConfiguration(title: "XYZ can't access \(content.description)",
             message: "Please activate \(content.description) access for xyz app.", vc: self)
         
-        PrivacyController.requestAccess(for: content, alertConfiguration: alertConfig) { isAuthorized in
+        Privacy.requestAccess(for: content, alertConfiguration: alertConfig) { isAuthorized in
             print("Can access \(content.description): \(isAuthorized)")
         }
     }

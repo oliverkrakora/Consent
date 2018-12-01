@@ -13,7 +13,7 @@ import EventKit
 import Contacts
 import UserNotifications
 
-public struct PrivacyController {
+public struct Privacy {
     
     // MARK: Definitions
     
@@ -185,7 +185,7 @@ public struct PrivacyController {
             }))
         case .photoLibrary:
             requestAccess(for: .photosLibrary({ authState in
-                complete(PrivacyController.simpleAuthState(for: .photoLibrary(authState)))
+                complete(Privacy.simpleAuthState(for: .photoLibrary(authState)))
             }))
         case .calendar(let type):
             requestAccess(for: .calendar(type, { (canAccess, error) in
@@ -229,7 +229,7 @@ public struct PrivacyController {
     }
     
     private static func checkPropertyListKey(for type: ContentType) {
-        precondition(type.requiredInfoPlistKey != nil && PrivacyController.infoDictionary?[type.requiredInfoPlistKey!] != nil, "The \(type.description) permission requires the Info.plist key \(type.requiredInfoPlistKey!)")
+        precondition(type.requiredInfoPlistKey != nil && Privacy.infoDictionary?[type.requiredInfoPlistKey!] != nil, "The \(type.description) permission requires the Info.plist key \(type.requiredInfoPlistKey!)")
     }
     
 }
