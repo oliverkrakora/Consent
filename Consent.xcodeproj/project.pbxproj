@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		5CDCDAC521AF25AD00BC4689 /* Consent.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CDCDAC321AF25AD00BC4689 /* Consent.h */; settings = {ATTRIBUTES = (Public, ); }; };
-		5CDCDACC21AF25D500BC4689 /* PrivacyController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDCDACB21AF25D500BC4689 /* PrivacyController.swift */; };
+		5CDCDACC21AF25D500BC4689 /* Privacy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDCDACB21AF25D500BC4689 /* Privacy.swift */; };
 		5CDCDAD421AF285200BC4689 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDCDAD321AF285200BC4689 /* AppDelegate.swift */; };
 		5CDCDAD921AF285200BC4689 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 5CDCDAD721AF285200BC4689 /* Main.storyboard */; };
 		5CDCDADB21AF285300BC4689 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 5CDCDADA21AF285300BC4689 /* Assets.xcassets */; };
@@ -46,7 +46,7 @@
 		5CDCDAC021AF25AC00BC4689 /* Consent.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Consent.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CDCDAC321AF25AD00BC4689 /* Consent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Consent.h; sourceTree = "<group>"; };
 		5CDCDAC421AF25AD00BC4689 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		5CDCDACB21AF25D500BC4689 /* PrivacyController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyController.swift; sourceTree = "<group>"; };
+		5CDCDACB21AF25D500BC4689 /* Privacy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Privacy.swift; sourceTree = "<group>"; };
 		5CDCDAD121AF285200BC4689 /* Example.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Example.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CDCDAD321AF285200BC4689 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		5CDCDAD521AF285200BC4689 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
@@ -98,7 +98,7 @@
 			children = (
 				5CDCDAC321AF25AD00BC4689 /* Consent.h */,
 				5CDCDAC421AF25AD00BC4689 /* Info.plist */,
-				5CDCDACB21AF25D500BC4689 /* PrivacyController.swift */,
+				5CDCDACB21AF25D500BC4689 /* Privacy.swift */,
 			);
 			path = Consent;
 			sourceTree = "<group>";
@@ -252,7 +252,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5CDCDACC21AF25D500BC4689 /* PrivacyController.swift in Sources */,
+				5CDCDACC21AF25D500BC4689 /* Privacy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -76,7 +76,7 @@ public struct Privacy {
         case photoLibrary(PHAuthorizationStatus)
         case calendar(EKAuthorizationStatus)
         case contacts(CNAuthorizationStatus)
-        case pushNotifications(UNNotificationSettings)
+        case pushNotifications(UNNotificationSettings, UNAuthorizationOptions)
     }
     
     public enum AuthorizationType {
@@ -114,9 +114,9 @@ public struct Privacy {
             completion(.calendar(EKEventStore.authorizationStatus(for: entityType)))
         case .contacts:
             completion(.contacts(CNContactStore.authorizationStatus(for: .contacts)))
-        case .pushNotifications:
+        case .pushNotifications(let options):
             UNUserNotificationCenter.current().getNotificationSettings { settings in
-                completion(.pushNotifications(settings))
+                completion(.pushNotifications(settings, options))
             }
         }
     }
@@ -132,8 +132,33 @@ public struct Privacy {
             return status == .authorized
         case .contacts(let status):
             return status == .authorized
-        case .pushNotifications(let settings):
-            return settings.authorizationStatus == .authorized
+        case .pushNotifications(let settings, let options):
+            let optionsAuthorized: Bool = {
+                var authorized = true
+                if options.contains(.badge) {
+                    authorized = authorized && settings.badgeSetting == .enabled
+                }
+                if options.contains(.sound) {
+                   authorized = authorized && settings.soundSetting == .enabled
+                }
+                if options.contains(.alert) {
+                    authorized = authorized && settings.alertSetting == .enabled
+                }
+                if options.contains(.carPlay) {
+                    authorized = authorized && settings.carPlaySetting == .enabled
+                }
+                if options.contains(.criticalAlert) {
+                    authorized = authorized && settings.criticalAlertSetting == .enabled
+                }
+                if options.contains(.providesAppNotificationSettings) {
+                    authorized = authorized && settings.providesAppNotificationSettings == true
+                }
+                if options.contains(.provisional) {
+                    authorized = authorized && settings.providesAppNotificationSettings == true
+                }
+                return authorized
+            }()
+            return settings.authorizationStatus == .authorized && optionsAuthorized
         }
     }
     
