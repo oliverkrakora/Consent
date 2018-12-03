@@ -256,7 +256,8 @@ public struct Privacy {
     }
     
     private static func checkPropertyListKey(for type: ContentType) {
-        precondition(type.requiredInfoPlistKey != nil && Privacy.infoDictionary?[type.requiredInfoPlistKey!] != nil, "The \(type.description) permission requires the Info.plist key \(type.requiredInfoPlistKey!)")
+        guard let requiredKey = type.requiredInfoPlistKey else { return }
+        precondition(Privacy.infoDictionary?[requiredKey] != nil, "The \(type.description) permission requires the Info.plist key \(requiredKey)")
     }
     
 }
