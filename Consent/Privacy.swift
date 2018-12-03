@@ -134,28 +134,28 @@ public struct Privacy {
             return status == .authorized
         case .pushNotifications(let settings, let options):
             let optionsAuthorized: Bool = {
-                var authorized = true
+                var authorized = false
                 if options.contains(.badge) {
-                    authorized = authorized && settings.badgeSetting == .enabled
+                    authorized = authorized || settings.badgeSetting == .enabled
                 }
                 if options.contains(.sound) {
-                    authorized = authorized && settings.soundSetting == .enabled
+                    authorized = authorized || settings.soundSetting == .enabled
                 }
                 if options.contains(.alert) {
-                    authorized = authorized && settings.alertSetting == .enabled
+                    authorized = authorized || settings.alertSetting == .enabled
                 }
                 if options.contains(.carPlay) {
-                    authorized = authorized && settings.carPlaySetting == .enabled
+                    authorized = authorized || settings.carPlaySetting == .enabled
                 }
                 if #available(iOS 12, *) {
                     if options.contains(.criticalAlert) {
-                        authorized = authorized && settings.criticalAlertSetting == .enabled
+                        authorized = authorized || settings.criticalAlertSetting == .enabled
                     }
                     if options.contains(.providesAppNotificationSettings) {
-                        authorized = authorized && settings.providesAppNotificationSettings == true
+                        authorized = authorized || settings.providesAppNotificationSettings == true
                     }
                     if options.contains(.provisional) {
-                        authorized = authorized && settings.providesAppNotificationSettings == true
+                        authorized = authorized || settings.providesAppNotificationSettings == true
                     }
                 }
                 return authorized
