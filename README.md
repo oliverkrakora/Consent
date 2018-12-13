@@ -20,7 +20,8 @@ case .restricted:
 ```
 
 ### With Consent
-```Consent.requestAccess(for: .camera) { canAccess in
+```
+Consent.requestAccess(for: .camera) { canAccess in
     if canAccess {
         //Show camera
     } else {
@@ -40,11 +41,13 @@ Consent checks if the required Info.plist keys are present before performing any
 #### Automatic error handling
 If you want to show an alert which allows the user to navigate to your app settings, you just need to specify an `AuthorizationFailureAlertConfiguration` like this:
 
-``` let alertConfig = AuthorizationFailureAlertConfiguration(title: "Access requried",
-message: "Please allow access to xyz",
-showSettingsTitle: "Settings",
-cancelTitle: "Cancel",
-vc: self)
+``` 
+let alertConfig = AuthorizationFailureAlertConfiguration(title: "Access requried",
+                                                         message: "Please allow access to xyz",
+                                                         showSettingsTitle: "Settings",
+                                                         cancelTitle: "Cancel",
+                                                         vc: self)
+                                                         
 Consent.requestAccess(for: .camera, alertConfiguration: alertConfig) { isAuthorized in
 // Your code goes here
 }
@@ -53,7 +56,8 @@ Consent.requestAccess(for: .camera, alertConfiguration: alertConfig) { isAuthori
 #### More control with specific errors
 If you want a more specific error if the authorazation fails, you can use the following method:
 
-```Consent.requestAccess(with: .photosLibrary({ status in
+```
+Consent.requestAccess(with: .photosLibrary({ status in
     switch status {
         //...
     }
