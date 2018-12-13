@@ -15,6 +15,62 @@ import UserNotifications
 
 // MARK: Definitions
 
+    /// A protocol for handling authorization failures
+    public protocol AuthorizationFailureHandler {
+        func handleAuthorizationFailure(for contentType: ContentType)
+    }
+
+    public struct AuthorizationFailureAlertHandler: AuthorizationFailureHandler {
+        public let title: String
+        public let message: String
+        public let showSettingsActionTitle: String
+        public let cancelActionTitle: String
+        public let viewController: UIViewController
+    
+        public init(title: String, message: String, showSettingsTitle: String = "Settings", cancelTitle: String = "Ok", vc: UIViewController) {
+            self.title = title
+            self.message = message
+            self.showSettingsActionTitle = showSettingsTitle
+            self.cancelActionTitle = cancelTitle
+            self.viewController = vc
+        }
+    
+        public func handleAuthorizationFailure(for contentType: ContentType) {
+                showAppSettingsAlert(with: title,
+                                     message: message,
+                                     cancelActionTitle: cancelActionTitle,
+                                     settingsActionTitle: showSettingsActionTitle,
+                                     vc: viewController)
+        }
+    }
+
+    public protocol PreconsentHandler {
+        func handlePreconsent(for contentType: ContentType, consentCompletion: @escaping (() -> Void))
+    }
+
+    public struct PreconsentAlertHandler: PreconsentHandler {
+        let title: String
+        let message: String
+        let consentTitle: String
+        let denyTitle: String
+        let viewController: UIViewController
+        
+        public init(title: String, message: String, allowActionTitle: String = "Settings", denyActionTitle: String = "Ok", vc: UIViewController) {
+            self.title = title
+            self.message = message
+            self.consentTitle = allowActionTitle
+            self.denyTitle = denyActionTitle
+            self.viewController = vc
+        }
+    
+        public func handlePreconsent(for contentType: ContentType, consentCompletion: @escaping (() -> Void)) {
+            let alertVC = alert(with: title, message: message, actionTitle: consentTitle, cancelTitle: denyTitle) {
+                consentCompletion()
+            }
+            viewController.present(alertVC, animated: true, completion: nil)
+        }
+    }
+
     public typealias AVKitCompletionHandler = ((Bool) -> Void)
     
     public typealias PHKitCompletionHandler = ((PHAuthorizationStatus) -> Void)
@@ -24,23 +80,7 @@ import UserNotifications
     public typealias UNUserNotificationCenterCompletionHandler = ((Bool, Error?) -> Void)
     
     public typealias SimpleAuthorizationCompletionHandler = ((Bool) -> Void)
-    
-    public struct AuthorizationFailureAlertConfiguration {
-        public let title: String
-        public let message: String
-        public let showSettingsActionTitle: String
-        public let cancelActionTitle: String
-        public let viewController: UIViewController
-        
-        public init(title: String, message: String, showSettingsTitle: String = "Settings", cancelTitle: String = "Ok", vc: UIViewController) {
-            self.title = title
-            self.message = message
-            self.showSettingsActionTitle = showSettingsTitle
-            self.cancelActionTitle = cancelTitle
-            self.viewController = vc
-        }
-    }
-    
+
     /// Content types for which a authorization request can be performed
     public enum ContentType {
         case camera
@@ -171,66 +211,70 @@ import UserNotifications
     /// - Parameter content: The content that should be accessed
     /// - Parameter alertConfiguration: An alert configuration that will be used to show an alert in case the requested content can not be accessed, see the function `showAppSettingsAlert`
     /// - Parameter completion: A closure that will be called with a bool which tells whether the requested content can be accessed
-    public func requestAccess(for content: ContentType, alertConfiguration: AuthorizationFailureAlertConfiguration? = nil, completion: @escaping SimpleAuthorizationCompletionHandler) {
+    public func requestAccess(for content: ContentType, preconsentHandler: PreconsentHandler? = nil, failureHandler: AuthorizationFailureHandler? = nil, completion: SimpleAuthorizationCompletionHandler?) {
         
         func complete(_ success: Bool) {
-            if !success, let alertConfig = alertConfiguration {
-                showAppSettingsAlert(with: alertConfig)
+            if !success, let handler = failureHandler {
+                handler.handleAuthorizationFailure(for: content)
+            } else {
+                completion?(success)
             }
-            completion(success)
         }
         
-        switch content {
-        case .camera:
-            requestAccess(with: .camera({ canAccess in
-                complete(canAccess)
-            }))
-        case .photoLibrary:
-            requestAccess(with: .photosLibrary({ authState in
-                complete(Consent.simpleAuthState(for: .photoLibrary(authState)))
-            }))
-        case .calendar(let type):
-            requestAccess(with: .calendar(type, { (canAccess, error) in
-                complete(canAccess && error == nil)
-            }))
-        case .contacts:
-            requestAccess(with: .contacts({ (canAccess, error) in
-                complete(canAccess && error == nil)
-            }))
-        case .pushNotifications(let options):
-            requestAccess(with: .pushNotifications(options, { (canAccess, error) in
-                complete(canAccess && error == nil)
-            }))
+        func performAccessRequest() {
+            switch content {
+            case .camera:
+                requestAccess(with: .camera({ canAccess in
+                    complete(canAccess)
+                }))
+            case .photoLibrary:
+                requestAccess(with: .photosLibrary({ authState in
+                    complete(Consent.simpleAuthState(for: .photoLibrary(authState)))
+                }))
+            case .calendar(let type):
+                requestAccess(with: .calendar(type, { (canAccess, error) in
+                    complete(canAccess && error == nil)
+                }))
+            case .contacts:
+                requestAccess(with: .contacts({ (canAccess, error) in
+                    complete(canAccess && error == nil)
+                }))
+            case .pushNotifications(let options):
+                requestAccess(with: .pushNotifications(options, { (canAccess, error) in
+                    complete(canAccess && error == nil)
+                }))
+            }
+        }
+
+        if let handler = preconsentHandler {
+            handler.handlePreconsent(for: content) {
+                performAccessRequest()
+            }
+        } else {
+            performAccessRequest()
         }
     }
-    
-    /// Shows an alert with an action to open the app settings
-    /// - Parameter title:
-    /// - Parameter message:
-    /// - Parameter viewController: The viewController on which the alert will be presented
-    public func showAppSettingsAlert(with title: String, message: String, openSettingsActionTitle: String, cancelActionTitle: String, viewController: UIViewController) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
-        alert.addAction(UIAlertAction(title: "Settings", style: .default, handler: { _ in
+
+    public func showAppSettingsAlert(with title: String, message: String, cancelActionTitle: String, settingsActionTitle: String, vc: UIViewController) {
+        let alertVC =  alert(with: title, message: message, actionTitle: settingsActionTitle, cancelTitle: cancelActionTitle) {
             let settingsURL = URL(string: UIApplication.openSettingsURLString)!
             UIApplication.shared.open(settingsURL, options: [:], completionHandler: nil)
-        }))
-        
-        DispatchQueue.main.async {
-            viewController.present(alert, animated: true, completion: nil)
-            
         }
+        vc.present(alertVC, animated: true, completion: nil)
     }
-    
-    public func showAppSettingsAlert(with config: AuthorizationFailureAlertConfiguration) {
-        showAppSettingsAlert(with: config.title,
-                             message: config.message,
-                             openSettingsActionTitle: config.showSettingsActionTitle,
-                             cancelActionTitle: config.cancelActionTitle,
-                             viewController: config.viewController)
-    }
-    
+
     private func checkPropertyListKey(for type: ContentType) {
         guard let requiredKey = type.requiredInfoPlistKey else { return }
         precondition(Consent.infoDictionary?[requiredKey] != nil, "The \(type.description) permission requires the Info.plist key \(requiredKey)")
+    }
+
+    private func alert(with title: String, message: String, actionTitle: String, cancelTitle: String, cancelAction: (() -> Void)? = nil, action: @escaping (() -> Void)) -> UIViewController {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: cancelTitle, style: .cancel) { _ in
+            cancelAction?()
+        })
+        alert.addAction(UIAlertAction(title: actionTitle, style: .default, handler: { _ in
+            action()
+        }))
+        return alert
     }

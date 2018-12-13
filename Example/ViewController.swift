@@ -14,11 +14,25 @@ class ViewController: UITableViewController {
     
     func requestAccess(for content: Consent.ContentType) {
         
-        let alertConfig = Consent.AuthorizationFailureAlertConfiguration(title: "XYZ can't access \(content.description)",
-            message: "Please activate \(content.description) access for xyz app.", vc: self)
+        let appName = "Example"
         
-        Consent.requestAccess(for: content, alertConfiguration: alertConfig) { isAuthorized in
-            print("Can access \(content.description): \(isAuthorized)")
+        let errorTitle = "\(appName) can't access \(content.description)"
+        let errorMessage = "\(appName) needs access to the device camera to demonstrate it's functionality. You can activate \(content.description) access in the device settings."
+        
+        let preconsentTitle = "Allow \(appName) to access \(content.description)?"
+        let preconsentMessage = "\(appName) needs access to \(content.description) to demonstrate it's functionality."
+        
+        let failureHandler = Consent.AuthorizationFailureAlertHandler(title: errorTitle,
+            message: errorMessage, vc: self)
+        
+        let consentHandler = Consent.PreconsentAlertHandler(title: preconsentTitle,
+                                                            message: preconsentMessage,
+                                                            allowActionTitle: "Allow",
+                                                            denyActionTitle: "Cancel",
+                                                            vc: self)
+        
+        Consent.requestAccess(for: content, preconsentHandler: consentHandler, failureHandler: failureHandler) { canAccess in
+            print("can access \(content.description): \(canAccess)")
         }
     }
     
