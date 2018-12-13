@@ -13,10 +13,8 @@ import EventKit
 import Contacts
 import UserNotifications
 
-public struct Privacy {
-    
-    // MARK: Definitions
-    
+// MARK: Definitions
+
     public typealias AVKitCompletionHandler = ((Bool) -> Void)
     
     public typealias PHKitCompletionHandler = ((PHAuthorizationStatus) -> Void)
@@ -27,22 +25,23 @@ public struct Privacy {
     
     public typealias SimpleAuthorizationCompletionHandler = ((Bool) -> Void)
     
-    public struct AuthorizationAlertConfiguration {
+    public struct AuthorizationFailureAlertConfiguration {
         public let title: String
         public let message: String
         public let showSettingsActionTitle: String
-        public let cancelTitle: String
+        public let cancelActionTitle: String
         public let viewController: UIViewController
         
         public init(title: String, message: String, showSettingsTitle: String = "Settings", cancelTitle: String = "Ok", vc: UIViewController) {
             self.title = title
             self.message = message
             self.showSettingsActionTitle = showSettingsTitle
-            self.cancelTitle = cancelTitle
+            self.cancelActionTitle = cancelTitle
             self.viewController = vc
         }
     }
     
+    /// Content types for which a authorization request can be performed
     public enum ContentType {
         case camera
         case photoLibrary
@@ -71,15 +70,8 @@ public struct Privacy {
         }
     }
     
-    public enum AuthorizationStatus {
-        case camera(AVAuthorizationStatus)
-        case photoLibrary(PHAuthorizationStatus)
-        case calendar(EKAuthorizationStatus)
-        case contacts(CNAuthorizationStatus)
-        case pushNotifications(UNNotificationSettings, UNAuthorizationOptions)
-    }
-    
-    public enum AuthorizationType {
+    /// A request to access user content
+    public enum AuthorizationRequest {
         case camera(AVKitCompletionHandler)
         case photosLibrary(PHKitCompletionHandler)
         case calendar(EKEntityType, EKEventStoreRequestAccessCompletionHandler)
@@ -97,12 +89,21 @@ public struct Privacy {
         }
     }
     
-    private static var infoDictionary: [String: Any]? = {
+    /// Reflects the authorization status of all underlying apis
+    public enum AuthorizationStatus {
+        case camera(AVAuthorizationStatus)
+        case photoLibrary(PHAuthorizationStatus)
+        case calendar(EKAuthorizationStatus)
+        case contacts(CNAuthorizationStatus)
+        case pushNotifications(UNNotificationSettings, UNAuthorizationOptions)
+    }
+    
+    private var infoDictionary: [String: Any]? = {
         return Bundle.main.infoDictionary
     }()
     
     /// Returns the underlying authorization status for the requested content
-    public static func authorizationStatus(for content: ContentType, completion: @escaping ((AuthorizationStatus) -> Void)) {
+    public func authorizationStatus(for content: ContentType, completion: @escaping ((AuthorizationStatus) -> Void)) {
         checkPropertyListKey(for: content)
         
         switch content {
@@ -122,7 +123,7 @@ public struct Privacy {
     }
     
     /// "Converts" an authorization status to a simple bool
-    public static func simpleAuthState(for authState: AuthorizationStatus) -> Bool {
+    public func simpleAuthState(for authState: AuthorizationStatus) -> Bool {
         switch authState {
         case .camera(let status):
             return status == .authorized
@@ -132,40 +133,14 @@ public struct Privacy {
             return status == .authorized
         case .contacts(let status):
             return status == .authorized
-        case .pushNotifications(let settings, let options):
-            let optionsAuthorized: Bool = {
-                var authorized = false
-                if options.contains(.badge) {
-                    authorized = authorized || settings.badgeSetting == .enabled
-                }
-                if options.contains(.sound) {
-                    authorized = authorized || settings.soundSetting == .enabled
-                }
-                if options.contains(.alert) {
-                    authorized = authorized || settings.alertSetting == .enabled
-                }
-                if options.contains(.carPlay) {
-                    authorized = authorized || settings.carPlaySetting == .enabled
-                }
-                if #available(iOS 12, *) {
-                    if options.contains(.criticalAlert) {
-                        authorized = authorized || settings.criticalAlertSetting == .enabled
-                    }
-                    if options.contains(.providesAppNotificationSettings) {
-                        authorized = authorized || settings.providesAppNotificationSettings == true
-                    }
-                    if options.contains(.provisional) {
-                        authorized = authorized || settings.providesAppNotificationSettings == true
-                    }
-                }
-                return authorized
-            }()
-            return settings.authorizationStatus == .authorized && optionsAuthorized
+        // Sending push notifications are considered as authorized if at least the badge option is authorized
+        case .pushNotifications(let settings, _):
+            return settings.authorizationStatus == .authorized
         }
     }
     
-    /// Returns a boolean value whether the specified content can be accessed
-    public static func canAccess(_ content: ContentType, completion: @escaping ((Bool) -> Void)) {
+    /// Checks the current authentication state for a given content and calls the completion closure whether the content can be accessed or not
+    public func canAccess(_ content: ContentType, completion: @escaping ((Bool) -> Void)) {
         authorizationStatus(for: content) { status in
             completion(simpleAuthState(for: status))
         }
@@ -173,11 +148,11 @@ public struct Privacy {
     
     /// Requests access for the given content
     /// Calls isAuthorized on users behalf, no need to call it manually
-    public static func requestAccess(for type: AuthorizationType) {
-        checkPropertyListKey(for: type.userContent)
+    public func requestAccess(with request: AuthorizationRequest) {
+        checkPropertyListKey(for: request.userContent)
         
-        canAccess(type.userContent) { isAuthorizedForContent in
-            switch type {
+        canAccess(request.userContent) { isAuthorizedForContent in
+            switch request {
             case .camera(let completion):
                 isAuthorizedForContent ? completion(true) : AVCaptureDevice.requestAccess(for: .video, completionHandler: completion)
             case .photosLibrary(let completion):
@@ -196,7 +171,7 @@ public struct Privacy {
     /// - Parameter content: The content that should be accessed
     /// - Parameter alertConfiguration: An alert configuration that will be used to show an alert in case the requested content can not be accessed, see the function `showAppSettingsAlert`
     /// - Parameter completion: A closure that will be called with a bool which tells whether the requested content can be accessed
-    public static func requestAccess(for content: ContentType, alertConfiguration: AuthorizationAlertConfiguration? = nil, completion: @escaping SimpleAuthorizationCompletionHandler) {
+    public func requestAccess(for content: ContentType, alertConfiguration: AuthorizationFailureAlertConfiguration? = nil, completion: @escaping SimpleAuthorizationCompletionHandler) {
         
         func complete(_ success: Bool) {
             if !success, let alertConfig = alertConfiguration {
@@ -207,23 +182,23 @@ public struct Privacy {
         
         switch content {
         case .camera:
-            requestAccess(for: .camera({ canAccess in
+            requestAccess(with: .camera({ canAccess in
                 complete(canAccess)
             }))
         case .photoLibrary:
-            requestAccess(for: .photosLibrary({ authState in
-                complete(Privacy.simpleAuthState(for: .photoLibrary(authState)))
+            requestAccess(with: .photosLibrary({ authState in
+                complete(Consent.simpleAuthState(for: .photoLibrary(authState)))
             }))
         case .calendar(let type):
-            requestAccess(for: .calendar(type, { (canAccess, error) in
+            requestAccess(with: .calendar(type, { (canAccess, error) in
                 complete(canAccess && error == nil)
             }))
         case .contacts:
-            requestAccess(for: .contacts({ (canAccess, error) in
+            requestAccess(with: .contacts({ (canAccess, error) in
                 complete(canAccess && error == nil)
             }))
         case .pushNotifications(let options):
-            requestAccess(for: .pushNotifications(options, { (canAccess, error) in
+            requestAccess(with: .pushNotifications(options, { (canAccess, error) in
                 complete(canAccess && error == nil)
             }))
         }
@@ -233,7 +208,7 @@ public struct Privacy {
     /// - Parameter title:
     /// - Parameter message:
     /// - Parameter viewController: The viewController on which the alert will be presented
-    public static func showAppSettingsAlert(with title: String, message: String, settingsTitle: String, cancelTitle: String, viewController: UIViewController) {
+    public func showAppSettingsAlert(with title: String, message: String, openSettingsActionTitle: String, cancelActionTitle: String, viewController: UIViewController) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "Ok", style: .cancel, handler: nil))
         alert.addAction(UIAlertAction(title: "Settings", style: .default, handler: { _ in
@@ -247,17 +222,15 @@ public struct Privacy {
         }
     }
     
-    public static func showAppSettingsAlert(with config: AuthorizationAlertConfiguration) {
+    public func showAppSettingsAlert(with config: AuthorizationFailureAlertConfiguration) {
         showAppSettingsAlert(with: config.title,
                              message: config.message,
-                             settingsTitle: config.showSettingsActionTitle,
-                             cancelTitle: config.cancelTitle,
+                             openSettingsActionTitle: config.showSettingsActionTitle,
+                             cancelActionTitle: config.cancelActionTitle,
                              viewController: config.viewController)
     }
     
-    private static func checkPropertyListKey(for type: ContentType) {
+    private func checkPropertyListKey(for type: ContentType) {
         guard let requiredKey = type.requiredInfoPlistKey else { return }
-        precondition(Privacy.infoDictionary?[requiredKey] != nil, "The \(type.description) permission requires the Info.plist key \(requiredKey)")
+        precondition(Consent.infoDictionary?[requiredKey] != nil, "The \(type.description) permission requires the Info.plist key \(requiredKey)")
     }
-    
-}

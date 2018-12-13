@@ -8,14 +8,16 @@
 
 import UIKit
 import Consent
+import AVKit
 
 class ViewController: UITableViewController {
     
-    func requestAccess(for content: Privacy.ContentType) {
-        let alertConfig = Privacy.AuthorizationAlertConfiguration(title: "XYZ can't access \(content.description)",
+    func requestAccess(for content: Consent.ContentType) {
+        
+        let alertConfig = Consent.AuthorizationFailureAlertConfiguration(title: "XYZ can't access \(content.description)",
             message: "Please activate \(content.description) access for xyz app.", vc: self)
         
-        Privacy.requestAccess(for: content, alertConfiguration: alertConfig) { isAuthorized in
+        Consent.requestAccess(for: content, alertConfiguration: alertConfig) { isAuthorized in
             print("Can access \(content.description): \(isAuthorized)")
         }
     }
