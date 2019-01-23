@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5C4A061021F8F4DF006A5674 /* PreconsentHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4A060F21F8F4DF006A5674 /* PreconsentHandler.swift */; };
+		5C4A061221F8F521006A5674 /* AuthorizationFailureHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4A061121F8F521006A5674 /* AuthorizationFailureHandler.swift */; };
+		5C4A061521F8F590006A5674 /* UIAlertController+Extension.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4A061421F8F590006A5674 /* UIAlertController+Extension.swift */; };
+		5C4A061721F8F5ED006A5674 /* Definitions.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C4A061621F8F5ED006A5674 /* Definitions.swift */; };
 		5C90AC2B21C2C63300AD6B9C /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 5C90AC2A21C2C63300AD6B9C /* README.md */; };
 		5CDCDAC521AF25AD00BC4689 /* Consent.h in Headers */ = {isa = PBXBuildFile; fileRef = 5CDCDAC321AF25AD00BC4689 /* Consent.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		5CDCDACC21AF25D500BC4689 /* Consent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CDCDACB21AF25D500BC4689 /* Consent.swift */; };
@@ -44,6 +48,10 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5C4A060F21F8F4DF006A5674 /* PreconsentHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreconsentHandler.swift; sourceTree = "<group>"; };
+		5C4A061121F8F521006A5674 /* AuthorizationFailureHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthorizationFailureHandler.swift; sourceTree = "<group>"; };
+		5C4A061421F8F590006A5674 /* UIAlertController+Extension.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIAlertController+Extension.swift"; sourceTree = "<group>"; };
+		5C4A061621F8F5ED006A5674 /* Definitions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Definitions.swift; sourceTree = "<group>"; };
 		5C90AC2A21C2C63300AD6B9C /* README.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		5CDCDAC021AF25AC00BC4689 /* Consent.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Consent.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		5CDCDAC321AF25AD00BC4689 /* Consent.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Consent.h; sourceTree = "<group>"; };
@@ -77,6 +85,35 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5C4A061321F8F57A006A5674 /* Extensions */ = {
+			isa = PBXGroup;
+			children = (
+				5C4A061421F8F590006A5674 /* UIAlertController+Extension.swift */,
+			);
+			path = Extensions;
+			sourceTree = "<group>";
+		};
+		5C4A061821F8FC5B006A5674 /* SupportingFiles */ = {
+			isa = PBXGroup;
+			children = (
+				5CDCDAC321AF25AD00BC4689 /* Consent.h */,
+				5CDCDAC421AF25AD00BC4689 /* Info.plist */,
+			);
+			path = SupportingFiles;
+			sourceTree = "<group>";
+		};
+		5C4A061921F8FC6A006A5674 /* Code */ = {
+			isa = PBXGroup;
+			children = (
+				5C4A061321F8F57A006A5674 /* Extensions */,
+				5C4A061621F8F5ED006A5674 /* Definitions.swift */,
+				5CDCDACB21AF25D500BC4689 /* Consent.swift */,
+				5C4A060F21F8F4DF006A5674 /* PreconsentHandler.swift */,
+				5C4A061121F8F521006A5674 /* AuthorizationFailureHandler.swift */,
+			);
+			path = Code;
+			sourceTree = "<group>";
+		};
 		5CDCDAB621AF25AC00BC4689 = {
 			isa = PBXGroup;
 			children = (
@@ -99,9 +136,8 @@
 		5CDCDAC221AF25AC00BC4689 /* Consent */ = {
 			isa = PBXGroup;
 			children = (
-				5CDCDAC321AF25AD00BC4689 /* Consent.h */,
-				5CDCDAC421AF25AD00BC4689 /* Info.plist */,
-				5CDCDACB21AF25D500BC4689 /* Consent.swift */,
+				5C4A061921F8FC6A006A5674 /* Code */,
+				5C4A061821F8FC5B006A5674 /* SupportingFiles */,
 			);
 			path = Consent;
 			sourceTree = "<group>";
@@ -257,6 +293,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				5CDCDACC21AF25D500BC4689 /* Consent.swift in Sources */,
+				5C4A061221F8F521006A5674 /* AuthorizationFailureHandler.swift in Sources */,
+				5C4A061521F8F590006A5674 /* UIAlertController+Extension.swift in Sources */,
+				5C4A061721F8F5ED006A5674 /* Definitions.swift in Sources */,
+				5C4A061021F8F4DF006A5674 /* PreconsentHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -432,7 +472,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				INFOPLIST_FILE = Consent/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Consent/SupportingFiles/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -459,7 +499,7 @@
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				DYLIB_INSTALL_NAME_BASE = "@rpath";
-				INFOPLIST_FILE = Consent/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Consent/SupportingFiles/Info.plist";
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
